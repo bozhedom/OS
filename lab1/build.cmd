@@ -2,7 +2,7 @@
 
 echo Updating project from Git...
 
-git pull origin main
+git pull origin master
 
 echo Building project...
 
