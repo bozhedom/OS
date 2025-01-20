@@ -1,4 +1,5 @@
 @echo off
+setlocal
 
 echo Updating project from Git...
 
@@ -12,10 +13,8 @@ if %ERRORLEVEL% neq 0 (
 echo Building project...
 
 if not exist build (
-    echo "Build directory not found. Creating build directory..."
+    echo Build directory not found. Creating build directory...
     mkdir build
-) else (
-    echo "Build directory already exists."
 )
 
 cd build
@@ -35,3 +34,4 @@ if %ERRORLEVEL% neq 0 (
 )
 
 echo Build complete!
+endlocal
