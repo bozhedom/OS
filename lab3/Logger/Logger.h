@@ -3,7 +3,12 @@
 
 #include <fstream>
 #include <string>
+
+#ifdef _WIN32
 #include <windows.h>
+#else
+#include <unistd.h>
+#endif
 
 class Logger {
 public:
@@ -16,7 +21,12 @@ public:
     bool isValidLogger() const;
 private:
     std::ofstream logFile;
+#ifdef _WIN32
     DWORD processId;
+#else
+    pid_t processId;
+#endif
+
     bool isValid;
 };
 

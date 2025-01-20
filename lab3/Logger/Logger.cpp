@@ -8,7 +8,11 @@ Logger::Logger(const std::string& filename) {
         isValid = false;
         return;
     }
+#ifdef _WIN32
     processId = GetCurrentProcessId();
+#else
+    processId = getpid();
+#endif
     isValid = true;
 }
 
