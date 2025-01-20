@@ -9,13 +9,14 @@
 #include <algorithm>
 #include <numeric>
 #include <thread>
+#include <cstring>
 
 #ifdef _WIN32
-#include <windows.h> // Для работы с COM портами на Windows
+#include <windows.h> 
 #else
-#include <fcntl.h>    // Для работы с файловыми дескрипторами (серийный порт)
-#include <unistd.h>   // Для POSIX API (Linux/MacOS)
-#include <termios.h>  // Для настройки параметров серийного порта
+#include <fcntl.h>   
+#include <unistd.h>  
+#include <termios.h>  
 #endif
 
 // Чтение температуры с устройства через серийный порт
@@ -23,7 +24,7 @@ float readTemperatureFromSerial(const std::string& portName) {
 #ifdef _WIN32
     std::wstring widePortName(portName.begin(), portName.end());
 
-    HANDLE hSerial = CreateFileW(  // Use CreateFileW for wide strings
+    HANDLE hSerial = CreateFileW(
         widePortName.c_str(),
         GENERIC_READ | GENERIC_WRITE,
         0,
@@ -35,7 +36,7 @@ float readTemperatureFromSerial(const std::string& portName) {
 
     if (hSerial == INVALID_HANDLE_VALUE) {
         std::cerr << "Ошибка: не удалось открыть порт " << portName << std::endl;
-        return -999.0f; // Значение ошибки
+        return -999.0f;
     }
 
     DCB dcbSerialParams = { 0 };
@@ -75,19 +76,18 @@ float readTemperatureFromSerial(const std::string& portName) {
 
     CloseHandle(hSerial);
     try {
-        return std::stof(buffer); // Преобразуем строку в float
+        return std::stof(buffer); 
     } catch (const std::invalid_argument& e) {
         std::cerr << "Ошибка: некорректный формат данных с устройства" << std::endl;
         return -999.0f;
     }
 
 #else
-    // Реализация для Linux/MacOS
     int serialPort = open(portName.c_str(), O_RDWR | O_NOCTTY | O_NDELAY);
 
     if (serialPort == -1) {
         std::cerr << "Ошибка: не удалось открыть порт " << portName << std::endl;
-        return -999.0f; // Значение ошибки
+        return -999.0f; 
     }
 
     // Настраиваем параметры порта
@@ -98,15 +98,15 @@ float readTemperatureFromSerial(const std::string& portName) {
         return -999.0f;
     }
 
-    cfsetispeed(&tty, B9600); // Скорость передачи данных (9600 бод)
+    cfsetispeed(&tty, B9600);
     cfsetospeed(&tty, B9600);
 
-    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8 бит данных
-    tty.c_iflag &= ~IGNBRK;                     // Отключение обработки прерываний
-    tty.c_lflag = 0;                           // Без канонического ввода
-    tty.c_oflag = 0;                           // Без обработки вывода
-    tty.c_cc[VMIN] = 1;                        // Минимальное количество символов для чтения
-    tty.c_cc[VTIME] = 1;                       // Таймаут чтения (0.1 сек)
+    tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; 
+    tty.c_iflag &= ~IGNBRK;                     
+    tty.c_lflag = 0;                           
+    tty.c_oflag = 0;                           
+    tty.c_cc[VMIN] = 1;                        
+    tty.c_cc[VTIME] = 1;                      
 
     tcsetattr(serialPort, TCSANOW, &tty);
 
@@ -118,10 +118,10 @@ float readTemperatureFromSerial(const std::string& portName) {
     int bytesRead = read(serialPort, buffer, sizeof(buffer) - 1);
 
     if (bytesRead > 0) {
-        buffer[bytesRead] = '\0'; // Завершаем строку
+        buffer[bytesRead] = '\0';
         close(serialPort);
         try {
-            return std::stof(buffer); // Преобразуем строку в float
+            return std::stof(buffer);
         } catch (const std::invalid_argument& e) {
             std::cerr << "Ошибка: некорректный формат данных с устройства" << std::endl;
             return -999.0f;
@@ -134,7 +134,7 @@ float readTemperatureFromSerial(const std::string& portName) {
 #endif
 }
 
-// Симуляция устройства для генерации температуры (резервный вариант)
+// Симуляция устройства для генерации температуры
 float simulateDeviceTemperature() {
     // Генерируем случайную температуру от -10 до 35 градусов Цельсия
     return -10.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (35.0f + 10.0f)));
@@ -160,7 +160,7 @@ std::string getCurrentDate() {
 
 // Запись строки в лог-файл
 void writeLog(const std::string& filePath, const std::string& message) {
-    std::ofstream logFile(filePath, std::ios::app); // Открываем файл в режиме добавления
+    std::ofstream logFile(filePath, std::ios::app);
     if (logFile.is_open()) {
         logFile << message << std::endl;
     } else {
@@ -201,13 +201,11 @@ void cleanOldData(const std::string& filePath, int hoursLimit) {
             std::istringstream iss(line);
             std::string timestamp;
             if (std::getline(iss, timestamp, ' ')) {
-                // Парсим дату и время из строки
                 std::tm timeStruct = {};
                 std::istringstream ss(timestamp);
                 ss >> std::get_time(&timeStruct, "%Y-%m-%d %H:%M:%S");
                 auto logTime = std::chrono::system_clock::from_time_t(std::mktime(&timeStruct));
 
-                // Проверяем, входит ли в интервал
                 auto duration = std::chrono::duration_cast<std::chrono::hours>(now - logTime).count();
                 if (duration <= hoursLimit) {
                     lines.push_back(line);
@@ -227,7 +225,6 @@ void cleanOldData(const std::string& filePath, int hoursLimit) {
 }
 
 int main() {
-    // Устанавливаем начальное значение для генерации случайных чисел
     srand(static_cast<unsigned>(time(0)));
 
     // Пути к лог-файлам
@@ -235,11 +232,10 @@ int main() {
     const std::string hourlyAvgLog = "hourly_average.log";
     const std::string dailyAvgLog = "daily_average.log";
 
-    // Порт для чтения температуры
     #ifdef _WIN32
-    const std::string serialPort = "COM3"; // Укажите реальный порт, например, "COM3"
+    const std::string serialPort = "COM3";
     #else
-    const std::string serialPort = "/dev/ttyUSB0"; // Укажите реальный порт, например, "/dev/ttyUSB0"
+    const std::string serialPort = "/dev/ttyUSB0";
     #endif
 
     std::vector<float> hourlyTemperatures;
@@ -264,18 +260,18 @@ int main() {
         // Логирование средней температуры каждый час
         if (hourlyTemperatures.size() >= 60) { // Примерно раз в час (60 минут)
             logHourlyAverage(hourlyTemperatures, hourlyAvgLog);
-            hourlyTemperatures.clear(); // Очистить после записи
+            hourlyTemperatures.clear();
         }
 
         // Логирование средней температуры каждый день
         if (dailyTemperatures.size() >= 1440) { // Примерно раз в день (1440 минут)
             logDailyAverage(dailyTemperatures, dailyAvgLog);
-            dailyTemperatures.clear(); // Очистить после записи
+            dailyTemperatures.clear();
         }
 
         cleanOldData(allMeasurementsLog, 24);
 
-        // Имитируем задержку 1 минута (или другой интервал, указанный в ТЗ)
+        // Имитируем задержку 1 минута
         std::this_thread::sleep_for(std::chrono::minutes(1));
     }
 
